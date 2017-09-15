@@ -36,26 +36,24 @@ class Auth(BaseAuth):
 
     """
 
-    def get_connection(self, host, port):
-        return imaplib.IMAP4(host=host, port=port)
-
-    def get_secure_connection(self, host, port, imaps):
+    def get_connection(self, host, port, secure, imaps):
+        ssl_context = ssl.create_default_context()
         try:
-            if imaps:
-                connection = imaplib.IMAP4_SSL(host=host, port=port)
-            else:
-                connection = self.get_connection(host, port)
-
+            if secure and imaps:
+                connection = imaplib.IMAP4_SSL(
+                        host=host, port=port, ssl_context=ssl_context)
+            elif secure:
+                connection = imaplib.IMAP4(host=host, port=port)
                 if sys.version_info < (3, 4):
                     connection.starttls()
                 else:
-                    connection.starttls(ssl.create_default_context())
+                    connection.starttls(ssl_context)
+            else:
+                connection = imaplib.IMAP4(host=host, port=port)
         except (imaplib.IMAP4.error, ssl.CertificateError) as e:
-            if secure:
-                raise
-            self.logger.debug("Failed to establish secure connection: %s",
+            self.logger.debug("Failed to establish connection: %s",
                               e, exc_info=True)
-
+            raise
         return connection
 
     def is_authenticated(self, user, password):
@@ -65,11 +63,9 @@ class Auth(BaseAuth):
         secure = True
         if self.configuration.has_option("auth", "imap_secure"):
             secure = self.configuration.getboolean("auth", "imap_secure")
-
         imaps = False
         if self.configuration.has_option("auth", "imaps"):
             imaps = self.configuration.getboolean("auth", "imaps")
-
         try:
             if ":" in host:
                 address, port = host.rsplit(":", maxsplit=1)
@@ -82,11 +78,7 @@ class Auth(BaseAuth):
         if sys.version_info < (3, 4) and secure:
             raise RuntimeError("Secure IMAP is not availabe in Python < 3.4")
         try:
-            if secure or imaps:
-                connection = self.get_secure_connection(address, port, imaps)
-            else:
-                connection = self.get_connection(address, port)
-
+            connection = get_connection(host, port, secure, imaps)
             try:
                 connection.login(user, password)
             except imaplib.IMAP4.error as e:
