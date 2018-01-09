@@ -30,31 +30,26 @@ class Auth(BaseAuth):
 
     [auth]
     type = radicale_imap
-    imap_host = imap.server.tld
-    imap_secure = True
-
+    imap_hostname = imap.server.tld
+    imap_ssl = True
+    imap_port = 143
     """
 
     def is_authenticated(self, user, password):
-        host = ""
-        if self.configuration.has_option("auth", "imap_host"):
-            host = self.configuration.get("auth", "imap_host")
+        hostname = ""
+        if self.configuration.has_option("auth", "imap_hostname"):
+            hostname = self.configuration.get("auth", "imap_hostname")
         secure = True
-        if self.configuration.has_option("auth", "imap_secure"):
-            secure = self.configuration.getboolean("auth", "imap_secure")
-        try:
-            if ":" in host:
-                address, port = host.rsplit(":", maxsplit=1)
-            else:
-                address, port = host, 143
-            address, port = address.strip("[] "), int(port)
-        except ValueError as e:
-            raise RuntimeError(
-                "Failed to parse address %r: %s" % (host, e)) from e
+        if self.configuration.has_option("auth", "imap_ssl"):
+            secure = self.configuration.getboolean("auth", "imap_ssl")
+        port = imaplib.IMAP4_SSL_PORT
+        if self.configuration.has_option("auth", "imap_port"):
+            port = self.configuration.get("auth", "imap_port") #TODO: cast port to int with proper error handling
+
         if sys.version_info < (3, 4) and secure:
             raise RuntimeError("Secure IMAP is not availabe in Python < 3.4")
         try:
-            connection = imaplib.IMAP4(host=address, port=port)
+            connection = imaplib.IMAP4(host=hostname, port=port)
             try:
                 if sys.version_info < (3, 4):
                     connection.starttls()
@@ -75,4 +70,5 @@ class Auth(BaseAuth):
             return True
         except (OSError, imaplib.IMAP4.error) as e:
             raise RuntimeError("Failed to communicate with IMAP server %r: "
-                               "%s" % (host, e)) from e
+                               "%s" % (hostname, e)) from e
+            # TODO: ^ find out how to add int port in log message
