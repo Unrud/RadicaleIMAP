@@ -42,6 +42,9 @@ class Auth(BaseAuth):
         secure = True
         if self.configuration.has_option("auth", "imap_secure"):
             secure = self.configuration.getboolean("auth", "imap_secure")
+        secure_check_hostname = True
+        if self.configuration.has_option("auth", "imap_secure_check_hostname"):
+            secure_check_hostname = self.configuration.getboolean("auth", "imap_secure_check_hostname")
         try:
             if ":" in host:
                 address, port = host.rsplit(":", maxsplit=1)
@@ -59,7 +62,9 @@ class Auth(BaseAuth):
                 if sys.version_info < (3, 4):
                     connection.starttls()
                 else:
-                    connection.starttls(ssl.create_default_context())
+                    context = ssl.create_default_context()
+                    context.check_hostname = secure_check_hostname
+                    connection.starttls(context)
             except (imaplib.IMAP4.error, ssl.CertificateError) as e:
                 if secure:
                     raise
