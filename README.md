@@ -22,6 +22,10 @@ type = radicale_imap
 # Use StartTLS to secure the connection
 # Requires Python >= 3.4
 #imap_secure = True
+
+# Check TLS hostname matches
+# Requires Python >= 3.4, and imap_secure = True
+#imap_secure_check_hostname = True
 ```
 
 ## License
