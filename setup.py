@@ -9,7 +9,7 @@ setup(
     version=VERSION,
     description="IMAP authentication plugin for Radicale",
     author="Unrud",
-    author_email="unrud@openaliasbox.org",
+    author_email="unrud@outlook.com",
     url="http://github.com/Unrud/RadicaleIMAP",
     license="GNU GPL v3",
     platforms="Any",
