@@ -19,4 +19,5 @@ setup(
     url="http://github.com/Unrud/RadicaleIMAP",
     license="GNU GPL v3",
     platforms="Any",
-    packages=["radicale_imap"])
+    packages=["radicale_imap"],
+    install_requires=["radicale>=2.0.0"])
