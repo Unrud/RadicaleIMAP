@@ -20,8 +20,6 @@ import sys
 
 from radicale.auth import BaseAuth
 
-VERSION = "2.0.0"
-
 
 class Auth(BaseAuth):
     """Authenticate user with IMAP.

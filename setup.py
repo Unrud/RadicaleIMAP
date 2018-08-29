@@ -1,18 +1,12 @@
 #!/usr/bin/env python3
 
-import os
-import re
-
 from setuptools import setup
 
-init_path = os.path.join(os.path.dirname(__file__),
-                         "radicale_imap", "__init__.py")
-with open(init_path) as f:
-    version = re.search(r'VERSION = "([^"]+)"', f.read()).group(1)
+VERSION = "2.0.0"
 
 setup(
     name="Radicale_IMAP",
-    version=version,
+    version=VERSION,
     description="IMAP authentication plugin for Radicale",
     author="Unrud",
     author_email="unrud@openaliasbox.org",
