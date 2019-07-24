@@ -24,6 +24,7 @@ type = radicale_imap
 #imap_secure = True
 
 # Use TLS (default port 993) when connecting
+# Requires Python >= 3.4
 #imap_tls = True
 ```
 
