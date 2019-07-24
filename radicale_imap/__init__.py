@@ -74,10 +74,7 @@ class Auth(BaseAuth):
                     if sys.version_info >= (3, 6):
                         client_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
                     else:
-                        client_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
-                    client_context.options |= ssl.OP_NO_SSLv3
-                    client_context.options |= ssl.OP_NO_TLSv1
-                    client_context.options |= ssl.OP_NO_TLSv1_1
+                        client_context = ssl.create_default_context()
                     connection = imaplib.IMAP4_SSL(host=address, port=port, ssl_context=client_context)
             else:
                 connection = imaplib.IMAP4(host=address, port=port)
