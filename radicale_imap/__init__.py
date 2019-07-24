@@ -20,7 +20,7 @@ import sys
 
 from radicale.auth import BaseAuth
 
-VERSION = "2.0.0"
+VERSION = "3.0.0"
 
 
 class Auth(BaseAuth):
@@ -32,6 +32,7 @@ class Auth(BaseAuth):
     type = radicale_imap
     imap_host = imap.server.tld
     imap_secure = True
+    imap_tls = True
 
     """
 
@@ -42,37 +43,51 @@ class Auth(BaseAuth):
         secure = True
         if self.configuration.has_option("auth", "imap_secure"):
             secure = self.configuration.getboolean("auth", "imap_secure")
+        # default to false for backwards compatibility
+        tls = False
+        if self.configuration.has_option("auth", "imap_tls"):
+            tls = self.configuration.getboolean("auth", "imap_tls")
+
+        # parse host
         try:
             if ":" in host:
                 address, port = host.rsplit(":", maxsplit=1)
             else:
-                address, port = host, 143
+                if tls:
+                    address, port = host, 993
+                else:
+                    address, port = host, 143
             address, port = address.strip("[] "), int(port)
         except ValueError as e:
-            raise RuntimeError(
-                "Failed to parse address %r: %s" % (host, e)) from e
+            raise RuntimeError("Failed to parse address %r: %s" % (host, e)) from e
+
         if sys.version_info < (3, 4) and secure:
             raise RuntimeError("Secure IMAP is not availabe in Python < 3.4")
+
+        # create connection
         try:
-            connection = imaplib.IMAP4(host=address, port=port)
-            try:
-                if sys.version_info < (3, 4):
-                    connection.starttls()
-                else:
-                    connection.starttls(ssl.create_default_context())
-            except (imaplib.IMAP4.error, ssl.CertificateError) as e:
-                if secure:
-                    raise
-                self.logger.debug("Failed to establish secure connection: %s",
-                                  e, exc_info=True)
+            if tls:
+                connection = imaplib.IMAP4_SSL(host=address, port=port)
+            else:
+                connection = imaplib.IMAP4(host=address, port=port)
+                try:
+                    if sys.version_info < (3, 4):
+                        connection.starttls()
+                    else:
+                        connection.starttls(ssl.create_default_context())
+                except (imaplib.IMAP4.error, ssl.CertificateError) as e:
+                    if secure:
+                        raise
+                    self.logger.debug("Failed to establish secure connection: %s", e, exc_info=True)
+
+            # login
             try:
                 connection.login(user, password)
             except imaplib.IMAP4.error as e:
-                self.logger.debug(
-                    "IMAP authentication failed: %s", e, exc_info=True)
+                self.logger.debug("IMAP authentication failed: %s", e, exc_info=True)
                 return False
+
             connection.logout()
             return True
         except (OSError, imaplib.IMAP4.error) as e:
-            raise RuntimeError("Failed to communicate with IMAP server %r: "
-                               "%s" % (host, e)) from e
+            raise RuntimeError("Failed to communicate with IMAP server %r: %s" % (host, e)) from e

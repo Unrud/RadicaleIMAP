@@ -5,7 +5,7 @@ IMAP authentication plugin for [Radicale](http://radicale.org/).
 ## Installation
 
 ```shell
-$ python3 -m pip install --upgrade git+https://github.com/Unrud/RadicaleIMAP
+python3 -m pip install --upgrade git+https://github.com/Unrud/RadicaleIMAP
 ```
 
 ## Configuration
@@ -22,6 +22,9 @@ type = radicale_imap
 # Use StartTLS to secure the connection
 # Requires Python >= 3.4
 #imap_secure = True
+
+# Use TLS (default port 993) when connecting
+#imap_tls = True
 ```
 
 ## License
