@@ -71,7 +71,11 @@ class Auth(BaseAuth):
                     connection = imaplib.IMAP4_SSL(host=address, port=port)
                 else:
                     # ssl context since 3.4
-                    connection = imaplib.IMAP4_SSL(host=address, port=port, ssl_context=ssl.create_default_context())
+                    client_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+                    client_context.options |= ssl.OP_NO_SSLv3
+                    client_context.options |= ssl.OP_NO_TLSv1
+                    client_context.options |= ssl.OP_NO_TLSv1_1
+                    connection = imaplib.IMAP4_SSL(host=address, port=port, ssl_context=client_context)
             else:
                 connection = imaplib.IMAP4(host=address, port=port)
                 try:
