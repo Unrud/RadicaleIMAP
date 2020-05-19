@@ -1,5 +1,5 @@
 # RadicaleIMAP IMAP authentication plugin for Radicale.
-# Copyright (C) 2017 Unrud <unrud@outlook.com>
+# Copyright (C) 2017, 2020 Unrud <unrud@outlook.com>
 #
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -16,61 +16,68 @@
 
 import imaplib
 import ssl
-import sys
+import string
 
 from radicale.auth import BaseAuth
+from radicale.log import logger
+
+
+def imap_address(value):
+    if "]" in value:
+        pre_address, pre_address_port = value.rsplit("]", 1)
+    else:
+        pre_address, pre_address_port = "", value
+    if ":" in pre_address_port:
+        pre_address2, port = pre_address_port.rsplit(":", 1)
+        address = pre_address + pre_address2
+    else:
+        address, port = pre_address + pre_address_port, None
+    try:
+        return (address.strip(string.whitespace + "[]"),
+                None if port is None else int(port))
+    except ValueError:
+        raise ValueError("malformed IMAP address: %r" % value)
+
+
+def imap_security(value):
+    if value not in ("tls", "starttls", "none"):
+        raise ValueError("unsupported IMAP security: %r" % value)
+    return value
+
+
+PLUGIN_CONFIG_SCHEMA = {"auth": {
+    "imap_host": {"value": "", "type": imap_address},
+    "imap_security": {"value": "tls", "type": imap_security}}}
 
 
 class Auth(BaseAuth):
-    """Authenticate user with IMAP.
+    """Authenticate user with IMAP."""
 
-    Configuration:
+    def __init__(self, configuration):
+        super().__init__(configuration.copy(PLUGIN_CONFIG_SCHEMA))
 
-    [auth]
-    type = radicale_imap
-    imap_host = imap.server.tld
-    imap_secure = True
-
-    """
-
-    def is_authenticated(self, user, password):
-        host = ""
-        if self.configuration.has_option("auth", "imap_host"):
-            host = self.configuration.get("auth", "imap_host")
-        secure = True
-        if self.configuration.has_option("auth", "imap_secure"):
-            secure = self.configuration.getboolean("auth", "imap_secure")
+    def login(self, login, password):
+        host, port = self.configuration.get("auth", "imap_host")
+        security = self.configuration.get("auth", "imap_security")
         try:
-            if ":" in host:
-                address, port = host.rsplit(":", maxsplit=1)
+            if security == "tls":
+                port = 993 if port is None else port
+                connection = imaplib.IMAP4_SSL(
+                    host=host, port=port,
+                    ssl_context=ssl.create_default_context())
             else:
-                address, port = host, 143
-            address, port = address.strip("[] "), int(port)
-        except ValueError as e:
-            raise RuntimeError(
-                "Failed to parse address %r: %s" % (host, e)) from e
-        if sys.version_info < (3, 4) and secure:
-            raise RuntimeError("Secure IMAP is not availabe in Python < 3.4")
-        try:
-            connection = imaplib.IMAP4(host=address, port=port)
-            try:
-                if sys.version_info < (3, 4):
-                    connection.starttls()
-                else:
+                port = 143 if port is None else port
+                connection = imaplib.IMAP4(host=host, port=port)
+                if security == "starttls":
                     connection.starttls(ssl.create_default_context())
-            except (imaplib.IMAP4.error, ssl.CertificateError) as e:
-                if secure:
-                    raise
-                self.logger.debug("Failed to establish secure connection: %s",
-                                  e, exc_info=True)
             try:
-                connection.login(user, password)
+                connection.login(login, password)
             except imaplib.IMAP4.error as e:
-                self.logger.debug(
+                logger.debug(
                     "IMAP authentication failed: %s", e, exc_info=True)
-                return False
+                return ""
             connection.logout()
-            return True
+            return login
         except (OSError, imaplib.IMAP4.error) as e:
             raise RuntimeError("Failed to communicate with IMAP server %r: "
-                               "%s" % (host, e)) from e
+                               "%s" % ("[%s]:%d" % (host, port), e)) from e

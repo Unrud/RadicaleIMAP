@@ -14,14 +14,16 @@ $ python3 -m pip install --upgrade git+https://github.com/Unrud/RadicaleIMAP
 [auth]
 type = radicale_imap
 
-# IMAP server host name
+# IMAP server hostname
+# Syntax: address
 # Syntax: address:port
+# Syntax: [address]:port
 # For example: imap.server.tld
 #imap_host =
 
-# Use StartTLS to secure the connection
-# Requires Python >= 3.4
-#imap_secure = True
+# Secure the IMAP connection
+# Value: tls | starttls | none
+#imap_security = tls
 ```
 
 ## License

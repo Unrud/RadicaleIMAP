@@ -2,7 +2,7 @@
 
 from setuptools import setup
 
-VERSION = "2.0.0"
+VERSION = "3.0.0"
 
 setup(
     name="Radicale_IMAP",
@@ -14,4 +14,4 @@ setup(
     license="GNU GPL v3",
     platforms="Any",
     packages=["radicale_imap"],
-    install_requires=["radicale>=2.0.0"])
+    install_requires=["radicale>=3.0.0"])
