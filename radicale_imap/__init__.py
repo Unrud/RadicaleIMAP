@@ -40,9 +40,14 @@ def imap_address(value):
 
 
 def imap_security(value):
-    if value not in ("tls", "starttls", "none"):
-        raise ValueError("unsupported IMAP security: %r" % value)
-    return value
+    fields = value.split(':', 1)
+    security = fields[0]
+    option = len(fields) > 1 and fields[1] or ""
+    if security not in ("tls", "starttls", "none"):
+        raise ValueError("unsupported IMAP security: %r" % security)
+    if option not in ("anycert", ""):
+        raise ValueError("unsupported IMAP security option: %r" % option)
+    return (security, option)
 
 
 PLUGIN_CONFIG_SCHEMA = {"auth": {
@@ -56,20 +61,29 @@ class Auth(BaseAuth):
     def __init__(self, configuration):
         super().__init__(configuration.copy(PLUGIN_CONFIG_SCHEMA))
 
+    def create_ssl_context(self, anycert):
+        ssl_context = ssl.create_default_context()
+
+        if anycert:
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+
+        return ssl_context
+
     def login(self, login, password):
         host, port = self.configuration.get("auth", "imap_host")
-        security = self.configuration.get("auth", "imap_security")
+        security, option = self.configuration.get("auth", "imap_security")
         try:
             if security == "tls":
                 port = 993 if port is None else port
                 connection = imaplib.IMAP4_SSL(
                     host=host, port=port,
-                    ssl_context=ssl.create_default_context())
+                    ssl_context=self.create_ssl_context(option == "anycert"))
             else:
                 port = 143 if port is None else port
                 connection = imaplib.IMAP4(host=host, port=port)
                 if security == "starttls":
-                    connection.starttls(ssl.create_default_context())
+                    connection.starttls(self.create_ssl_context(option == "anycert"))
             try:
                 connection.login(login, password)
             except imaplib.IMAP4.error as e:

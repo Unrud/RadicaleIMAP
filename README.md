@@ -22,7 +22,7 @@ type = radicale_imap
 #imap_host =
 
 # Secure the IMAP connection
-# Value: tls | starttls | none
+# Value: tls | tls:anycert | starttls | starttls:anycert | none
 #imap_security = tls
 ```
 
