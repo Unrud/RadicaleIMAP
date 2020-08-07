@@ -5,7 +5,7 @@ IMAP authentication plugin for [Radicale](http://radicale.org/).
 ## Installation
 
 ```shell
-$ python3 -m pip install --upgrade git+https://github.com/Unrud/RadicaleIMAP
+$ python3 -m pip install --upgrade https://github.com/Unrud/RadicaleIMAP/archive/master.tar.gz
 ```
 
 ## Configuration
