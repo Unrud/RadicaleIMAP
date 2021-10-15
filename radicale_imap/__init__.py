@@ -71,7 +71,10 @@ class Auth(BaseAuth):
                 if security == "starttls":
                     connection.starttls(ssl.create_default_context())
             try:
-                connection.login(login, password)
+                connection.authenticate(
+                    "PLAIN",
+                    lambda _: "{0}\x00{0}\x00{1}".format(login, password).encode()
+                )
             except imaplib.IMAP4.error as e:
                 logger.debug(
                     "IMAP authentication failed: %s", e, exc_info=True)
