@@ -5,7 +5,7 @@ from setuptools import setup
 VERSION = "3.0.0"
 
 setup(
-    name="Radicale_IMAP",
+    name="RadicaleIMAP",
     version=VERSION,
     description="IMAP authentication plugin for Radicale",
     author="Unrud",
