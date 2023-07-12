@@ -43,6 +43,9 @@ class TestRadicaleImap(unittest.TestCase):
         with self.assertRaises(TestIMAPSuccess):
             auth.login("authorized@test2.com", "p@ssw0rd")
 
+        # example.com is not an authorized domain
+        self.assertEqual(auth.login("unauthorized.domain@example.com", "p@ssw0rd"), "")
+
         # test with empty allowed_domains
         auth = radicale_imap.Auth(radicale.config.load())
         auth.configuration.update(
