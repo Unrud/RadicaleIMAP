@@ -24,6 +24,13 @@ type = radicale_imap
 # Secure the IMAP connection
 # Value: tls | starttls | none
 #imap_security = tls
+
+# Domains allowed separated with comma
+# Syntax: domain[,domain]
+#    note: values are separated with comma
+# Default: ""
+#    note: empty value allow all domains to authenticate
+#allowed_domains = domain.tld, other.domain.org
 ```
 
 ## License

@@ -33,8 +33,10 @@ def imap_address(value):
     else:
         address, port = pre_address + pre_address_port, None
     try:
-        return (address.strip(string.whitespace + "[]"),
-                None if port is None else int(port))
+        return (
+            address.strip(string.whitespace + "[]"),
+            None if port is None else int(port),
+        )
     except ValueError:
         raise ValueError("malformed IMAP address: %r" % value)
 
@@ -45,9 +47,32 @@ def imap_security(value):
     return value
 
 
-PLUGIN_CONFIG_SCHEMA = {"auth": {
-    "imap_host": {"value": "", "type": imap_address},
-    "imap_security": {"value": "tls", "type": imap_security}}}
+def domain_list(domains):
+    if not domains:
+        return []
+    return [x.strip() for x in domains.split(",")]
+
+
+def email_domain(email):
+    try:
+        (emailuser, domain) = email.split("@")
+    except ValueError:
+        raise ValueError(
+            "invalid email address: failed to split email in two parts: %s" % email
+        )
+
+    if not emailuser or not domain:
+        raise ValueError("invalid email address: %s" % email)
+    return domain
+
+
+PLUGIN_CONFIG_SCHEMA = {
+    "auth": {
+        "imap_host": {"value": "", "type": imap_address},
+        "imap_security": {"value": "tls", "type": imap_security},
+        "allowed_domains": {"value": "", "type": domain_list},
+    }
+}
 
 
 class Auth(BaseAuth):
@@ -59,25 +84,38 @@ class Auth(BaseAuth):
     def login(self, login, password):
         host, port = self.configuration.get("auth", "imap_host")
         security = self.configuration.get("auth", "imap_security")
+        allowed_domains = self.configuration.get("auth", "allowed_domains")
         try:
+            if allowed_domains:
+                try:
+                    if not email_domain(login) in allowed_domains:
+                        logger.debug("domain: %s is not allowed to login", email_domain(login))
+                        return ""
+                except ValueError as e:
+                    raise ValueError("failed to verify domain allowance: %r" % e)
+
             if security == "tls":
                 port = 993 if port is None else port
                 connection = imaplib.IMAP4_SSL(
-                    host=host, port=port,
-                    ssl_context=ssl.create_default_context())
+                    host=host, port=port, ssl_context=ssl.create_default_context()
+                )
             else:
                 port = 143 if port is None else port
                 connection = imaplib.IMAP4(host=host, port=port)
                 if security == "starttls":
                     connection.starttls(ssl.create_default_context())
+
             try:
                 connection.login(login, password)
             except imaplib.IMAP4.error as e:
-                logger.debug(
-                    "IMAP authentication failed: %s", e, exc_info=True)
+                logger.debug("IMAP authentication failed: %s", e, exc_info=True)
                 return ""
             connection.logout()
+
+            logger.debug("user successfully authenticated: %s", login)
             return login
         except (OSError, imaplib.IMAP4.error) as e:
-            raise RuntimeError("Failed to communicate with IMAP server %r: "
-                               "%s" % ("[%s]:%d" % (host, port), e)) from e
+            raise RuntimeError(
+                "Failed to communicate with IMAP server %r: "
+                "%s" % ("[%s]:%d" % (host, port), e)
+            ) from e
