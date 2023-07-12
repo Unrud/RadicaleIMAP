@@ -89,6 +89,7 @@ class Auth(BaseAuth):
             if allowed_domains:
                 try:
                     if not email_domain(login) in allowed_domains:
+                        logger.debug("domain: %s is not allowed to login", email_domain(login))
                         return ""
                 except ValueError as e:
                     raise ValueError("failed to verify domain allowance: %r" % e)
@@ -103,13 +104,15 @@ class Auth(BaseAuth):
                 connection = imaplib.IMAP4(host=host, port=port)
                 if security == "starttls":
                     connection.starttls(ssl.create_default_context())
-                    
+
             try:
                 connection.login(login, password)
             except imaplib.IMAP4.error as e:
                 logger.debug("IMAP authentication failed: %s", e, exc_info=True)
                 return ""
             connection.logout()
+
+            logger.debug("user successfully authenticated: %s", login)
             return login
         except (OSError, imaplib.IMAP4.error) as e:
             raise RuntimeError(
