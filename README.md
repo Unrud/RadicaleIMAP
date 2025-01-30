@@ -1,3 +1,7 @@
+# ⛔️ DEPRECATED
+
+This feature has been integrated into Radicale as of version 3.4.1.
+
 # Radicale IMAP
 
 IMAP authentication plugin for [Radicale](http://radicale.org/).
